@@ -1,51 +1,96 @@
 package com.prince.android;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
-
-    // TODO (1) Create a key String called LIFECYCLE_CALLBACKS_TEXT_KEY
-
-    private static final String LIFECYCLE_CALLBACKS_TEXT_KEY = "callbacks";
-
-    /* Constant values for the names of each respective lifecycle callback */
-    private static final String ON_CREATE = "onCreate";
-    private static final String ON_START = "onStart";
-    private static final String ON_RESUME = "onResume";
-    private static final String ON_PAUSE = "onPause";
-    private static final String ON_STOP = "onStop";
-    private static final String ON_RESTART = "onRestart";
-    private static final String ON_DESTROY = "onDestroy";
-    private static final String ON_SAVE_INSTANCE_STATE = "onSaveInstanceState";
-
-    /*
-     * This TextView will contain a running log of every lifecycle callback method called from this
-     * Activity. This TextView can be reset to its default state by clicking the Button labeled
-     * "Reset Log"
-     */
-    private TextView mLifecycleDisplay;
+    private FirebaseFirestore db;
+    private RecyclerView recyclerView;
+    private ArrayList<User> users;
+    private UserViewAdapter userViewAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mLifecycleDisplay = findViewById(R.id.tv_lifecycle_events_display);
-
-        // TODO (6) If savedInstanceState is not null and contains LIFECYCLE_CALLBACKS_TEXT_KEY, set that text on our TextView
-
-        logAndAppend(ON_CREATE);
+        users = new ArrayList<>();
+        setUpRecyclerView();
+        setUpFireBase();
+        addTestDatasToFireBase();
+        loadDataFromFirebase();
     }
 
-    private void logAndAppend(String lifecycleEvent) {
-        Log.d(TAG, "Lifecycle Event: " + lifecycleEvent);
+    private void setUpRecyclerView() {
+        recyclerView = findViewById(R.id.recycler_view);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
 
-        mLifecycleDisplay.append(lifecycleEvent + "\n");
+    private void setUpFireBase() {
+        db = FirebaseFirestore.getInstance();
+    }
+
+    private void addTestDatasToFireBase() {
+        Random random = new Random();
+
+        Map<String, String> dataMap = new HashMap<>();
+        dataMap.put("name", "try name "+random.nextInt(50));
+        dataMap.put("status", "try status "+random.nextInt(50));
+
+        db.collection("users")
+                .add(dataMap)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Toast.makeText(MainActivity.this, "Users has been added", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void loadDataFromFirebase() {
+        db.collection("users")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        for (DocumentSnapshot querySnapshot: task.getResult()) {
+                            User user = new User(querySnapshot.getString("name"),
+                                    querySnapshot.getString("status"));
+                            users.add(user);
+                        }
+
+                        userViewAdapter = new UserViewAdapter(MainActivity.this, users);
+                        recyclerView.setAdapter(userViewAdapter);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
+                        Log.v("Error!", e.getMessage());
+                    }
+                });
     }
 }

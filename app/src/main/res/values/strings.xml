@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">me-android</string>
+    <string name="app_name">Android Test</string>
+    <string name="update">Update</string>
 </resources>
