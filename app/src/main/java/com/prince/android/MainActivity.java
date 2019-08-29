@@ -7,6 +7,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -21,14 +24,16 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private FirebaseFirestore db;
+    public FirebaseFirestore db;
     private RecyclerView recyclerView;
     private ArrayList<User> users;
     private UserViewAdapter userViewAdapter;
+
+    EditText txtUserName;
+    Button btnAdd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,10 +41,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         users = new ArrayList<>();
+        txtUserName = findViewById(R.id.txtUserName);
+        btnAdd = findViewById(R.id.btnAdd);
+
+        btnAdd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addUserName();
+            }
+        });
+
         setUpRecyclerView();
         setUpFireBase();
-        addTestDatasToFireBase();
-        loadDataFromFirebase();
+        loadDataFromFireBase();
     }
 
     private void setUpRecyclerView() {
@@ -52,37 +66,28 @@ public class MainActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
     }
 
-    private void addTestDatasToFireBase() {
-        Random random = new Random();
+    public void loadDataFromFireBase() {
+        if (users.size() > 0) {
+            users.clear();
+        }
 
-        Map<String, String> dataMap = new HashMap<>();
-        dataMap.put("name", "try name "+random.nextInt(50));
-        dataMap.put("status", "try status "+random.nextInt(50));
-
-        db.collection("users")
-                .add(dataMap)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                    @Override
-                    public void onSuccess(DocumentReference documentReference) {
-                        Toast.makeText(MainActivity.this, "Users has been added", Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
-    private void loadDataFromFirebase() {
         db.collection("users")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         for (DocumentSnapshot querySnapshot: task.getResult()) {
-                            User user = new User(querySnapshot.getString("name"),
-                                    querySnapshot.getString("status"));
+                            User user = new User(
+                                    querySnapshot.getId(),
+                                    querySnapshot.getString("name"),
+                                    querySnapshot.getString("status")
+                            );
                             users.add(user);
                         }
 
                         userViewAdapter = new UserViewAdapter(MainActivity.this, users);
                         recyclerView.setAdapter(userViewAdapter);
+
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -90,6 +95,37 @@ public class MainActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Exception e) {
                         Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
                         Log.v("Error!", e.getMessage());
+                    }
+                });
+    }
+
+    private void addUserName() {
+        String username = txtUserName.getText().toString();
+
+        if (username.matches("")) {
+            Toast.makeText(this, "Please provide any string", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Map<String, String> dataMap = new HashMap<>();
+        dataMap.put("name", username);
+        dataMap.put("status", "active");
+
+        db.collection("users")
+                .add(dataMap)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Toast.makeText(MainActivity.this, "User has been added", Toast.LENGTH_SHORT).show();
+                        txtUserName.setText("");
+                        loadDataFromFireBase();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
+                        Log.v("CREATION_ERROR", e.getMessage());
                     }
                 });
     }

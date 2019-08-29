@@ -1,11 +1,20 @@
 package com.prince.android;
 
 public class User {
-    public String userName, userStatus;
+    public String userId, userName, userStatus;
 
-    public User(String userName, String userStatus) {
+    public User(String userId, String userName, String userStatus) {
+        this.userId = userId;
         this.userName = userName;
         this.userStatus = userStatus;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getUserName() {
