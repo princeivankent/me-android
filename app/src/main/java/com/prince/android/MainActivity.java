@@ -5,6 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -33,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private UserViewAdapter userViewAdapter;
 
     EditText txtUserName;
-    Button btnAdd;
+    Button btnAdd, btnNavigate, btnOpenGoogle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,11 +46,27 @@ public class MainActivity extends AppCompatActivity {
         users = new ArrayList<>();
         txtUserName = findViewById(R.id.txtUserName);
         btnAdd = findViewById(R.id.btnAdd);
+        btnNavigate = findViewById(R.id.btnNavigate);
+        btnOpenGoogle = findViewById(R.id.btnOpenGoogle);
 
         btnAdd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 addUserName();
+            }
+        });
+
+        btnNavigate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openNewScreen();
+            }
+        });
+
+        btnOpenGoogle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openGoogle("https://www.google.com");
             }
         });
 
@@ -128,5 +147,26 @@ public class MainActivity extends AppCompatActivity {
                         Log.v("CREATION_ERROR", e.getMessage());
                     }
                 });
+    }
+
+    private void openNewScreen() {
+        String data = txtUserName.getText().toString();
+
+        Context context = MainActivity.this;
+        Class destinationActivity = ChildActivity.class;
+
+        Intent intent = new Intent(context, destinationActivity);
+        intent.putExtra(Intent.EXTRA_TEXT, data);
+        startActivity(intent);
+    }
+
+    private void openGoogle(String url) {
+        Uri webpage = Uri.parse(url);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(webpage);
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        }
     }
 }
